@@ -1,0 +1,144 @@
+#include <p18f4520.h>
+#include <delays.h>
+
+#pragma config OSC = HS         // High-speed oscillator
+#pragma config  WDT = OFF        // Watchdog Timer disabled
+#pragma config LVP = OFF        // Low-voltage Programming disabled
+#pragma config PBADEN = OFF
+
+#define rs LATCbits.LATC0
+#define en LATCbits.LATC1
+
+/*
+Delay10KTCYx(1)4mS
+Delay10KTCYx(2)8mS
+*/
+
+void lcdcmd1(unsigned char command)
+{
+	LATCbits.LATC2 = (command) & 0x1;		//RC2=1
+	LATEbits.LATE0 = (command >> 1 ) & 0x1;	//RE0=1
+	LATEbits.LATE1 = (command >> 2)  & 0x1;	//RE1=0
+	LATEbits.LATE2 = (command >> 3 ) & 0x1;	//RE2=0
+	en=0;
+	rs=0;
+	Delay10KTCYx(1);
+	en=1;
+	Delay10KTCYx(1);
+	en=0;
+	Delay10KTCYx(1);
+}
+
+void lcdcmd(unsigned char value)
+{
+/*
+exmple value command =0x38 =>
+Require to send command lik this Way:
+highernibble = 0   0   1   1    | 0   0   0   0
+      	       D7  D6  D5  D4   | D3  D2  D1  D0			
+			   RE2 RE1 RE0 RC2		
+lowernibble =  1   0   0   0   | 0   0   0   0
+		       D7  D6  D5  D4  | D3  D2  D1  D0			
+here D0-D3 is not used because of 4-Bit DATA LINES
+So we have to send data(0x3 & 0x8) on D4-D7 Data lines  two times
+*/	
+	char lowernibble=0,highernibble=0;
+
+	//Exmaple Value =0x38
+	lowernibble = value & 0x0f;					//lowernibble  = 0x08			
+	highernibble = value & 0xf0;				//highernibble = 0x30		
+	highernibble = (highernibble  >>4) & 0x0f ;	//highernibble = 0x03
+	lcdcmd1(highernibble);
+	lcdcmd1(lowernibble);
+	Delay10KTCYx(2);
+}
+void lcddata1(unsigned char data)
+{
+	//data = 0x38=>0x03,0x08 nibble 
+	LATCbits.LATC2 = (data) & 0x1;		    //RC2=1
+	LATEbits.LATE0 = (data >> 1 ) & 0x1;	//RE0=1
+	LATEbits.LATE1 = (data >> 2)  & 0x1;	//RE1=0
+	LATEbits.LATE2 = (data >> 3 ) & 0x1;	//RE2=0
+	rs=1;
+	Delay10KTCYx(1);
+	en=0;
+	Delay10KTCYx(1);
+	en=1;
+	Delay10KTCYx(1);
+	en=0;
+	Delay10KTCYx(1);
+}
+void lcddata(unsigned char value)
+{
+/*
+exmple value command =0x38 =>
+Require to send command lik this Way:
+highernibble = 0   0   1   1    | 0   0   0   0
+      	       D7  D6  D5  D4   | D3  D2  D1  D0			
+			   RE2 RE1 RE0 RC2		
+lowernibble =  1   0   0   0   | 0   0   0   0
+		       D7  D6  D5  D4  | D3  D2  D1  D0			
+here D0-D3 is not used because of 4-Bit DATA LINES
+So we have to send data(0x3 & 0x8) on D4-D7 Data lines  two times
+*/	
+	char lowernibble=0,highernibble=0;
+
+	//Exmaple Value =0x38
+	lowernibble  = value & 0x0f;				//lowernibble  = 0x08			
+	highernibble = value & 0xf0;				//highernibble = 0x30		
+	highernibble = (highernibble  >>4) & 0x0f ;	//highernibble = 0x03	
+	lcddata1(highernibble);
+	lcddata1(lowernibble);
+	Delay10KTCYx(2);
+}
+void lcdinit()
+{
+	//Configure OutPut Pin
+	TRISEbits.RE0 = 0	;	//OUTPUT DIR OF RE0
+	TRISEbits.RE1 = 0	;	//OUTPUT DIR OF RE1
+	TRISEbits.RE2 = 0	;	//OUTPUT DIR OF RE2
+	TRISCbits.RC0 = 0	;	//OUTPUT DIR OF RC0
+	TRISCbits.RC1 = 0	;	//OUTPUT DIR OF RC1
+	TRISCbits.RC2 = 0	;	//OUTPUT DIR OF RC2
+	
+	//Make Output Value =0 to all Pins
+	PORTEbits.RE0 =  0;
+	PORTEbits.RE1 =  0;
+	PORTEbits.RE2 =  0;
+	PORTCbits.RC0 =  0;
+	PORTCbits.RC1 =  0;
+	PORTCbits.RC1 =  0;
+
+	//Commands for LCD Init
+	Delay10KTCYx(1);
+	lcdcmd(0x03);
+	Delay10KTCYx(1);
+	lcdcmd(0x03);
+	Delay10KTCYx(2);
+	lcdcmd(0x03);
+	Delay10KTCYx(2);
+	lcdcmd(0x02);
+	Delay10KTCYx(2);
+	lcdcmd(0x28);
+	lcdcmd(0x08);
+	lcdcmd(0x0c);
+	lcdcmd(0x06);
+}
+
+void main (void)
+{
+	lcdinit();
+	while(1)
+	{		
+		//Line1 Sending Data=SPJ
+		lcdcmd(0x80) ;	//Line1,1st Position	
+		lcddata('S');
+		lcdcmd(0x81) ;
+		lcddata('I');
+		lcdcmd(0x82) ;
+		lcddata('T');
+		lcdcmd(0x83) ;
+		lcddata('S');
+		Delay10KTCYx(1);
+	}
+}
