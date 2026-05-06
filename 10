@@ -1,0 +1,64 @@
+package jdbc;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class JDBC {
+
+    public static void main(String[] args) {
+        String url = "jdbc:mysql://localhost:3306/assignment10"; 
+        String username = "root"; 
+        String password = "root123"; 
+
+        try (Connection conn = DriverManager.getConnection(url, username, password)) {
+
+            System.out.println("Connected to the database successfully!");
+
+            // Insert three student records
+            insertStudent(conn, 1, "john_doe", "CSE");
+            insertStudent(conn, 2, "alice_smith", "ECE");
+            insertStudent(conn, 3, "bob_jones", "ME");
+            // Display records
+            selectStudents(conn);
+
+        } catch (SQLException e) {
+            System.out.println("Error while connecting to the database: " + e.getMessage());
+        }
+    }
+
+    private static void insertStudent(Connection connection, int rollno, String username, String department) throws SQLException {
+        String sql = "INSERT INTO Student (RollNo, Username, Department) VALUES (?, ?, ?)";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, rollno);
+            preparedStatement.setString(2, username);
+            preparedStatement.setString(3, department);
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Data inserted successfully!");
+            } else {
+                System.out.println("Failed to insert data.");
+            }
+        }
+    }
+
+    private static void selectStudents(Connection connection) throws SQLException {
+        String sql = "SELECT * FROM Student";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            ResultSet resultSet = preparedStatement.executeQuery();
+            System.out.println("Student Records:");
+            System.out.println("Roll No\tUsername\tDepartment");
+            System.out.println("--------------------------------------");
+            while (resultSet.next()) {
+                int rollNo = resultSet.getInt("RollNo");
+                String name = resultSet.getString("Username");
+                String department = resultSet.getString("Department");
+                System.out.println(rollNo + "\t" + name + "\t" + department);
+            }
+            System.out.println("--------------------------------------");
+        }
+    }
+}
+
