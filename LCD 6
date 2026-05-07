@@ -142,3 +142,72 @@ void main (void)
 		Delay10KTCYx(1);
 	}
 }
+
+
+
+
+
+chatgpt code
+
+#include <p18f4520.h>
+#include <delays.h>
+
+#pragma config OSC = HS
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+
+#define rs LATCbits.LATC0
+#define en LATCbits.LATC1
+
+void lcdcmd(char cmd);
+void lcddata(char data);
+
+void pulse()
+{
+    en = 1;
+    Delay10KTCYx(1);
+    en = 0;
+}
+
+void lcdcmd(char cmd)
+{
+    LATD = cmd;
+    rs = 0;
+    pulse();
+}
+
+void lcddata(char data)
+{
+    LATD = data;
+    rs = 1;
+    pulse();
+}
+
+void lcdinit()
+{
+    TRISC = 0x00;
+    TRISD = 0x00;
+
+    Delay10KTCYx(2);
+
+    lcdcmd(0x38); // 8-bit mode
+    lcdcmd(0x0C); // Display ON
+    lcdcmd(0x01); // Clear LCD
+    lcdcmd(0x06); // Increment cursor
+}
+
+void main()
+{
+    lcdinit();
+
+    lcdcmd(0x80);
+
+    lcddata('S');
+    lcddata('I');
+    lcddata('T');
+    lcddata('S');
+
+    while(1);
+}
+
